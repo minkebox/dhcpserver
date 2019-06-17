@@ -5,7 +5,7 @@ trap "echo 'Terminating'; killall sleep dnsmasq; exit" TERM
 if [ "${ALT_DNS}" != "" ]; then
   DNS="${ALT_DNS}"
 else
-  DNS="${__HOSTIP}"
+  DNS="${__DNSSERVER}"
 fi
 
 echo "option:router,${__GATEWAY}
