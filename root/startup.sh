@@ -21,6 +21,8 @@ for line in $(cat /etc/dnsmasq-hosts.d/user-defined-hosts.conf); do
   echo "${ip} ${host}.${__DOMAINNAME} ${host}" >> /etc/dnsmasq-hosts.conf
 done
 
+echo "domain=${__DOMAINNAME}" >> /etc/dnsmasq.conf
+
 dnsmasq
 
 sleep 2147483647d &
