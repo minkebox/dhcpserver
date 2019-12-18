@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-RUN apk --no-cache add dnsmasq ;\
+RUN apk --no-cache add dnsmasq inotify-tools ;\
     rm -f /etc/dnsmasq.conf
 
 COPY root/ /

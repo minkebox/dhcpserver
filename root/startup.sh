@@ -1,6 +1,6 @@
 #! /bin/sh
 
-trap "echo 'Terminating'; killall sleep dnsmasq; exit" TERM
+trap "echo 'Terminating'; killall sleep dnsmasq inotifywait; exit" TERM
 
 if [ "${ALT_DNS}" != "" ]; then
   DNS="${ALT_DNS}"
@@ -24,6 +24,12 @@ done
 echo "domain=${__DOMAINNAME}" >> /etc/dnsmasq.conf
 
 dnsmasq
+
+LEASES=/etc/dnsmasq-state.d/leases
+touch ${LEASES}
+inotifywait --quiet --monitor --event modify ${LEASES} | while read path action file; do
+  sed "s/^[0-9]\+ [0-9a-fA-F:]\+ \([0-9.]\+\) \(.\+\) [0-9a-fA-F:*]\+$/\1 \2/" ${LEASES} | sort -n -t . -k 1,1 -k 2,2 -k 3,3 -k 4,4 > /etc/dnsmasq-state.d/hosts
+done
 
 sleep 2147483647d &
 wait "$!"
