@@ -29,7 +29,7 @@ LEASES=/etc/dnsmasq-state.d/leases
 HOSTS=/etc/dnsmasq-state.d/hosts
 touch ${LEASES} ${HOSTS}
 (inotifywait --quiet --monitor --event modify ${LEASES} | while read path action file; do
-  lines=$(sed -e "/^duid/d" -e "s/^[0-9]\+ [0-9a-fA-F:]\+ \([0-9.]\+\) \(.\+\) [0-9a-fA-F:*]\+$/[\"\1\",\"\2\"]/" ${LEASES} | sort -n -t . -k 1,1 -k 2,2 -k 3,3 -k 4,4 | paste -s -d",")
+  lines=$(sed -e "s/^[0-9]\+ [0-9a-fA-F:]\+ \([0-9.]\+\) \(.\+\) [0-9a-fA-F:*]\+$/[\"\1\",\"\2\"]/" -e "t" -e "d" ${LEASES} | sort -n -t . -k 1,1 -k 2,2 -k 3,3 -k 4,4 | paste -s -d",")
   echo "[${lines}]" > ${HOSTS}
 done) &
 
