@@ -1,0 +1,190 @@
+{
+  name: `DHCP`,
+  description: `DHCP Server to provide IP addresses to things on the network which need them`,
+  image: `registry.minkebox.net/minkebox/dhcpserver`,
+  tags: [ 'Networking' ],
+  actions: [
+    {
+      type: `Header`,
+      title: `IP Addresses`
+    },
+    {
+      type: `Text`,
+      text: `Enter the range of IP addresses issued by this server.`
+    },
+    {
+      type: `File`,
+      name: `/etc/dnsmasq.d/dhcp-ranges.conf`,
+      description: `Address Ranges`,
+      style: `Table`,
+      headers: [
+        { name: `Start IP`, validate: `(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)` },
+        { name: `End IP`, validate: `(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)` },
+        { name: `Time to live` }
+      ],
+      pattern: `dhcp-range={{0}},{{1}},{{2}}
+`,
+      join: ``,
+      controls: false
+    },
+    {
+      type: `Header`,
+      title: `Reserved Addresses`
+    },
+    {
+      type: `Text`,
+      text: `Reserve individual IP addresses for specific hosts based on their MAC addresses.`
+    },
+    {
+      type: `File`,
+      name: `/etc/dnsmasq-hosts.d/user-defined-hosts.conf`,
+      description: `Reserved Addresses`,
+      style: `Table`,
+      headers: [
+        { name: `Hostname` },
+        { name: `MAC Address`, validate: `([0-9A-Fa-f]{2}:){5}([0-9A-Fa-f]{2})` },
+        { name: `IP Address`, validate: `(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)` }
+      ],
+      pattern: `{{1}},{{2}},{{0}}
+`,
+      join: ``
+    },
+    {
+      type: `Header`,
+      title: `Issued Addresses`
+    },
+    {
+      type: `Text`,
+      text: `IP addresses issued and currently active.`
+    },
+    {
+      type: `File`,
+      name: `/etc/dnsmasq-state.d/hosts`,
+      description: `Addresses`,
+      style: `RTable`,
+      headers: [
+        { name: `IP Address` },
+        { name: `Hostname` }
+      ]
+    },
+    {
+      type: `Header`,
+      title: `Advanced`,
+      visible: `property.Advanced`
+    },
+    {
+      type: `Environment`,
+      name: `ALT_DNS`,
+      description: `Override default DNS server`
+    },
+  ],
+  properties: [
+    {
+      type: `Feature`,
+      name: `dns`
+    },
+    {
+      type: `Feature`,
+      name: `dhcp`
+    },
+    {
+      type: `Port`,
+      name: `1053/tcp`,
+      port: 1053,
+      protocol: `TCP`,
+      nat: false,
+      web: false,
+      mdns: null
+    },
+    {
+      type: `Port`,
+      name: `1053/udp`,
+      port: 1053,
+      protocol: `UDP`,
+      nat: false,
+      web: false,
+      dns: true,
+      mdns: null
+    },
+    {
+      type: `Port`,
+      name: `67/udp`,
+      port: 67,
+      protocol: `UDP`,
+      nat: false,
+      web: false,
+      mdns: null
+    },
+    {
+      type: `Port`,
+      name: `68/udp`,
+      port: 68,
+      protocol: `UDP`,
+      nat: false,
+      web: false,
+      mdns: null
+    },
+    {
+      type: `Directory`,
+      name: `/etc/dnsmasq-state.d`,
+      style: 'boot'
+    },
+    {
+      type: `File`,
+      name: `/etc/dnsmasq-hosts.d/user-defined-hosts.conf`,
+      style: 'boot'
+    },
+    {
+      type: `File`,
+      name: `/etc/dnsmasq-state.d/hosts`,
+      style: 'boot'
+    },
+    {
+      type: `File`,
+      name: `/etc/dnsmasq.d/dhcp-ranges.conf`,
+      style: 'boot',
+      defaultAltValue: `[["","","1h"]]`,
+      defaultValue: ``
+    },
+    {
+      type: `Network`,
+      name: `primary`,
+      defaultValue: `host`
+    },
+    {
+      type: `Environment`,
+      name: `ALT_DNS`,
+      defaultValue: ``
+    },
+  ],
+  monitor: {
+    cmd: `wc -l /etc/dnsmasq-hosts.d/user-defined-hosts.conf ; cat /etc/dnsmasq.d/dhcp-ranges.conf ; cat /etc/dnsmasq-state.d/leases`,
+    polling: 600,
+    parser: `
+      const now = Math.floor(Date.now() / 1000);
+      const lines = input.split('\\n');
+      const times = lines.slice(2).map(line => parseInt(line.split(' ')[0]) - now);
+      const range = lines[1].split(/[=,]/);
+      output.active = times.reduce((acc, time) => acc += (time > 0) ? 1 : 0, 0);
+      output.from = range[1];
+      output.to = range[2];
+      output.fixed = lines[0].trim().split(' ')[0];
+    `,
+    header: `
+      <style>
+        .dhcp-o { display: inline-block; width: 200px; padding-top: 20px; float: right; }
+        .dhcp-b { color: grey; text-align: right; padding: 0 5px 10px 0; }
+        .dhcp-v { display: inline-block; font-size: 24px; color: black; }
+        .dhcp-r { display: inline-block; font-size: 18px; color: black; }
+      </style>
+    `,
+    template: `
+      <div class="dhcp-o">
+        <div class="dhcp-b"><div class="dhcp-r">{{from}}</div><div>From</div></div>
+        <div class="dhcp-b"><div class="dhcp-r">{{to}}</div><div>To</div></div>
+        <div class="dhcp-b"><div class="dhcp-v">{{active}}</div><div>Active Leases</div></div>
+        <div class="dhcp-b"><div class="dhcp-v">{{fixed}}</div><div>Fixed Addresses</div></div>
+      </div>
+    `
+  }
+}
