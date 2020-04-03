@@ -11,8 +11,10 @@ fi
 echo "option:router,${__GATEWAY}
 option:domain-name,${__DOMAINNAME}
 option:domain-search,${__DOMAINNAME},local
-option:ntp-server,pool.ntp.org
-option:dns-server,${DNS}" > /etc/dnsmasq-options.d/dhcp-options.conf
+option:ntp-server,pool.ntp.org" > /etc/dnsmasq-options.d/dhcp-options.conf
+for server in ${DNS}; do
+  echo "option:dns-server,${server}" >> /etc/dnsmasq-options.d/dhcp-options.conf
+done
 
 cp /dev/null /etc/dnsmasq-hosts.conf
 for line in $(cat /etc/dnsmasq-hosts.d/user-defined-hosts.conf); do
