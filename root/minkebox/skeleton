@@ -124,7 +124,8 @@
     {
       type: `File`,
       name: `/etc/dnsmasq-state.d/hosts`,
-      style: 'boot'
+      style: 'boot',
+      readonly: true
     },
     {
       type: `File`,
